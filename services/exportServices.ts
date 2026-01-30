@@ -6,7 +6,8 @@ import {
   statusLabel, 
   groupByQuadra, 
   sanitizeSheetName, 
-  sanitizeFileName 
+  sanitizeFileName,
+  calculateLoteTotal
 } from '../utils/helpers';
 
 export const exportToExcel = async (emp: Empreendimento) => {
@@ -14,39 +15,23 @@ export const exportToExcel = async (emp: Empreendimento) => {
   const wb = utils.book_new();
   
   const resumenData = emp.lotes.map(l => ({
-    "Empreendimento": emp.nome,
     "Quadra": l.quadra || "(Sem quadra)",
     "Lote": l.numero,
     "Entrada": formatBRL(l.entrada),
+    "Parcela": formatBRL(l.parcelaValor),
+    "Prazo": l.parcelaPrazo,
+    "VGV Total": formatBRL(calculateLoteTotal(l)),
     "Status": statusLabel(l.status),
-    "Cliente": l.cliente,
-    "Corretor": l.corretor,
+    "Cliente": l.cliente || "-",
+    "Corretor": l.corretor || "-",
     "Imobiliária": l.imobiliaria || "-",
-    "Data da Venda": l.dataVenda ? formatISOToBR(l.dataVenda) : "-",
-    "Reservado até": formatISOToBR(l.reservaAte)
+    "Data da Venda": l.dataVenda ? formatISOToBR(l.dataVenda) : "-"
   }));
   
   const wsResumo = utils.json_to_sheet(resumenData);
-  utils.book_append_sheet(wb, wsResumo, "Resumo");
+  utils.book_append_sheet(wb, wsResumo, "Relatório Completo");
   
-  const grouped = groupByQuadra(emp.lotes);
-  Object.entries(grouped).forEach(([quadra, lotes]) => {
-    const quadraData = lotes.map(l => ({
-      "Lote": l.numero,
-      "Entrada": formatBRL(l.entrada),
-      "Status": statusLabel(l.status),
-      "Cliente": l.cliente,
-      "Corretor": l.corretor,
-      "Imobiliária": l.imobiliaria || "-",
-      "Data da Venda": l.dataVenda ? formatISOToBR(l.dataVenda) : "-",
-      "Reservado até": formatISOToBR(l.reservaAte)
-    }));
-    
-    const wsQuadra = utils.json_to_sheet(quadraData);
-    utils.book_append_sheet(wb, wsQuadra, sanitizeSheetName(quadra));
-  });
-  
-  writeFile(wb, sanitizeFileName(`${emp.nome}.xlsx`));
+  writeFile(wb, sanitizeFileName(`${emp.nome}_Financeiro.xlsx`));
 };
 
 export const exportToPDF = async (emp: Empreendimento) => {
@@ -55,9 +40,7 @@ export const exportToPDF = async (emp: Empreendimento) => {
   const doc = new jsPDF('l', 'mm', 'a4');
   
   doc.setFontSize(18);
-  doc.text(emp.nome, 14, 20);
-  doc.setFontSize(10);
-  doc.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, 14, 28);
+  doc.text(`${emp.nome} - Relatório Geral`, 14, 20);
   
   const grouped = groupByQuadra(emp.lotes);
   let startY = 35;
@@ -70,26 +53,23 @@ export const exportToPDF = async (emp: Empreendimento) => {
 
     autoTable(doc, {
       startY: startY,
-      head: [['Lote', 'Entrada', 'Status', 'Cliente', 'Corretor', 'Imob.', 'Venda/Validade']],
+      head: [['Lote', 'Entrada', 'Plano', 'Total', 'Status', 'Corretor', 'Imobiliária']],
       body: lotes.map(l => [
         l.numero,
         formatBRL(l.entrada),
+        `${formatBRL(l.parcelaValor)} (${l.parcelaPrazo}x)`,
+        formatBRL(calculateLoteTotal(l)),
         statusLabel(l.status),
-        l.cliente || '-',
         l.corretor || '-',
-        l.imobiliaria || '-',
-        l.status === 'vendido' 
-          ? `VENDIDO: ${formatISOToBR(l.dataVenda || "")}` 
-          : (formatISOToBR(l.reservaAte) || '-')
+        l.imobiliaria || '-'
       ]),
       theme: 'grid',
-      headStyles: { fillColor: [51, 65, 85] },
-      styles: { fontSize: 7 },
-      margin: { top: 20 }
+      headStyles: { fillColor: [30, 41, 59] },
+      styles: { fontSize: 7 }
     });
     // @ts-ignore
     startY = doc.lastAutoTable.finalY + 15;
   });
 
-  doc.save(sanitizeFileName(`${emp.nome}.pdf`));
+  doc.save(sanitizeFileName(`${emp.nome}_Relatorio.pdf`));
 };

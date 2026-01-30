@@ -9,7 +9,7 @@ export interface User {
   role: Role;
   password?: string;
   avatar?: string;
-  empreendimentosVinculados?: string[]; // IDs dos empreendimentos que este usuário pode ver
+  empreendimentosVinculados?: string[];
 }
 
 export interface Lote {
@@ -17,11 +17,13 @@ export interface Lote {
   quadra: string;
   numero: string;
   entrada: number;
+  parcelaValor: number; 
+  parcelaPrazo: number; 
   status: Status;
   cliente: string;
   corretor: string;
-  imobiliaria?: string;
-  dataVenda?: string; // Novo campo para data e hora da venda
+  imobiliaria: string;
+  dataVenda?: string;
   reservaAte: string; 
   reservedById?: string; 
 }
@@ -39,10 +41,12 @@ export interface LoteFormState {
   quadra: string;
   numero: string;
   entrada: string;
+  parcelaValor: string;
+  parcelaPrazo: string;
   status: Status;
   cliente: string;
   corretor: string;
   imobiliaria: string;
-  dataVenda: string; // Novo campo no formulário
+  dataVenda: string;
   reservaAte: string;
 }

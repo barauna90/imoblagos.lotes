@@ -48,6 +48,7 @@ const App: React.FC = () => {
   const [loteModalOpen, setLoteModalOpen] = useState(false);
   const [bulkModalOpen, setBulkModalOpen] = useState(false);
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
+  const [clearProjectConfirmOpen, setClearProjectConfirmOpen] = useState(false);
 
   const [empNome, setEmpNome] = useState("");
   const [newUser, setNewUser] = useState({ nome: '', email: '', password: '', role: 'corretor' as Role });
@@ -145,6 +146,13 @@ const App: React.FC = () => {
     setBulkModalOpen(false);
   };
 
+  const handleClearAllLotes = async () => {
+    if (!selectedEmp) return;
+    await SupabaseService.saveEmpreendimento({ ...selectedEmp, lotes: [] });
+    await loadData();
+    setClearProjectConfirmOpen(false);
+  };
+
   const selectedEmp = useMemo(() => empreendimentos.find(e => e.id === selectedEmpId) || null, [empreendimentos, selectedEmpId]);
   const dashStats = useMemo(() => selectedEmp ? getDashboardStats(selectedEmp.lotes, dashMonth, dashYear) : null, [selectedEmp, dashMonth, dashYear]);
 
@@ -208,7 +216,6 @@ const App: React.FC = () => {
              </button>
           </div>
         </div>
-        {/* Seletor mobile de abas */}
         {isMaster && (
           <div className="sm:hidden border-t flex justify-around p-2 bg-white">
             <button onClick={() => setActiveTab('empreendimentos')} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase ${activeTab === 'empreendimentos' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-400'}`}>Mapa</button>
@@ -287,6 +294,7 @@ const App: React.FC = () => {
                     </div>
                     {isMaster && (
                       <div className="flex gap-2 ml-auto">
+                        <Button variant="danger" className="bg-rose-50 text-rose-600 border border-rose-100 hover:bg-rose-500 hover:text-white" onClick={() => setClearProjectConfirmOpen(true)}>ZERAR PROJETO</Button>
                         <Button variant="secondary" onClick={() => setBulkModalOpen(true)}>MASSA</Button>
                         <Button onClick={() => setLoteModalOpen(true)}>+ LOTE</Button>
                       </div>
@@ -337,7 +345,6 @@ const App: React.FC = () => {
                 )}
              </div>
 
-             {/* Filtros */}
              <div className="flex flex-wrap gap-4 items-end bg-white p-4 rounded-3xl border shadow-sm">
                 <div className="flex-1 min-w-[200px]"><Select label="SITUAÇÃO" value={filtroStatus} onChange={e => setFiltroStatus(e.target.value as Status)}><option value="">TODOS OS LOTES</option><option value="disponivel">DISPONÍVEL</option><option value="reservado">RESERVADO</option><option value="vendido">VENDIDO</option></Select></div>
                 <div className="flex-1 min-w-[200px]"><Input label="QUADRA" placeholder="Ex: G" value={filtroQuadra} onChange={e => setFiltroQuadra(e.target.value)} /></div>
@@ -445,7 +452,6 @@ const App: React.FC = () => {
                         </tbody>
                       </table>
                     </div>
-                    <div className="lg:hidden p-4 bg-slate-50 text-center border-t text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Arraste para o lado para ver mais →</div>
                   </div>
                 )}
              </div>
@@ -511,6 +517,25 @@ const App: React.FC = () => {
              await loadData(); 
              setLoteModalOpen(false);
           }}>ATUALIZAR DADOS</Button>
+        </div>
+      </Modal>
+
+      {/* MODAL CONFIRMAÇÃO ZERAR PROJETO */}
+      <Modal isOpen={clearProjectConfirmOpen} onClose={() => setClearProjectConfirmOpen(false)} title="Atenção: Ação Crítica">
+        <div className="space-y-6">
+          <div className="p-6 bg-rose-50 border border-rose-100 rounded-3xl text-rose-600">
+            <div className="flex items-center gap-3 mb-4">
+              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+              <p className="font-black uppercase text-xs tracking-widest">Ação Irreversível</p>
+            </div>
+            <p className="text-sm font-medium leading-relaxed">
+              Você está prestes a apagar <strong>TODOS</strong> os lotes deste projeto. Isso removerá registros de vendas, reservas e tabelas de preços. Esta ação não pode ser desfeita.
+            </p>
+          </div>
+          <div className="flex flex-col gap-3">
+            <Button variant="danger" className="w-full h-16 rounded-2xl" onClick={handleClearAllLotes}>SIM, APAGAR TUDO</Button>
+            <Button variant="ghost" className="w-full" onClick={() => setClearProjectConfirmOpen(false)}>CANCELAR E VOLTAR</Button>
+          </div>
         </div>
       </Modal>
 

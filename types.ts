@@ -20,7 +20,8 @@ export interface Lote {
   status: Status;
   cliente: string;
   corretor: string;
-  imobiliaria?: string; // Novo campo
+  imobiliaria?: string;
+  dataVenda?: string; // Novo campo para data e hora da venda
   reservaAte: string; 
   reservedById?: string; 
 }
@@ -41,6 +42,7 @@ export interface LoteFormState {
   status: Status;
   cliente: string;
   corretor: string;
-  imobiliaria: string; // Novo campo
+  imobiliaria: string;
+  dataVenda: string; // Novo campo no formulário
   reservaAte: string;
 }

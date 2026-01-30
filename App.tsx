@@ -15,7 +15,8 @@ import {
   toNumber, 
   statusLabel, 
   groupByQuadra, 
-  getStats 
+  getStats,
+  nowLocalISO 
 } from './utils/helpers';
 import { SupabaseService, supabase } from './services/supabase';
 import { exportToExcel, exportToPDF } from './services/exportServices';
@@ -38,7 +39,7 @@ const App: React.FC = () => {
   const [viewMode, setViewMode] = useState<ViewMode>("lista");
   const [filtroQuadra, setFiltroQuadra] = useState("");
   const [filtroEntrada, setFiltroEntrada] = useState("");
-  const [filtroStatus, setFiltroStatus] = useState<Status | "">(""); // Novo estado para filtro de status
+  const [filtroStatus, setFiltroStatus] = useState<Status | "">("");
 
   const [empModalOpen, setEmpModalOpen] = useState(false);
   const [empNome, setEmpNome] = useState("");
@@ -52,14 +53,12 @@ const App: React.FC = () => {
   
   const [loteForm, setLoteForm] = useState<LoteFormState>({
     quadra: "", numero: "", entrada: "", status: "disponivel", 
-    cliente: "", corretor: "", imobiliaria: "", reservaAte: ""
+    cliente: "", corretor: "", imobiliaria: "", dataVenda: "", reservaAte: ""
   });
 
   const [userForm, setUserForm] = useState({ 
     nome: '', email: '', role: 'corretor' as Role, password: '', empreendimentosVinculados: [] as string[]
   });
-
-  const [rescueForm, setRescueForm] = useState({ uid: '', nome: '', email: '', role: 'corretor' as Role });
 
   const isMaster = currentUser?.role === 'master';
   const isCorretor = currentUser?.role === 'corretor';
@@ -69,7 +68,7 @@ const App: React.FC = () => {
     setViewMode("lista");
     setFiltroQuadra("");
     setFiltroEntrada("");
-    setFiltroStatus(""); // Reset do filtro de status
+    setFiltroStatus("");
   };
 
   const handleOpenNewLoteModal = () => {
@@ -82,6 +81,7 @@ const App: React.FC = () => {
       cliente: "",
       corretor: "",
       imobiliaria: "",
+      dataVenda: "",
       reservaAte: ""
     });
     setLoteModalOpen(true);
@@ -185,14 +185,10 @@ const App: React.FC = () => {
         return matchQuadra && matchEntrada && matchStatus;
       })
       .sort((a, b) => {
-        // Ordenação Principal: Quadra (Alfanumérica)
         const quadraA = a.quadra.toUpperCase().trim();
         const quadraB = b.quadra.toUpperCase().trim();
         const quadraComparison = quadraA.localeCompare(quadraB, undefined, { numeric: true });
-        
         if (quadraComparison !== 0) return quadraComparison;
-        
-        // Ordenação Secundária: Número do Lote (Numérica)
         return a.numero.localeCompare(b.numero, undefined, { numeric: true });
       });
   }, [selectedEmp, filtroQuadra, filtroEntrada, filtroStatus]);
@@ -246,8 +242,7 @@ const App: React.FC = () => {
       <main className="max-w-7xl w-full mx-auto px-4 py-8 flex-1">
         {mainTab === 'usuarios' && isMaster ? (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
-             {/* Conteúdo de usuários aqui... */}
-             <div className="bg-white rounded-[2rem] border overflow-hidden shadow-sm p-10 text-center">Gestão de Usuários Ativa</div>
+             <div className="bg-white rounded-[2rem] border overflow-hidden shadow-sm p-10 text-center text-[10px] font-black uppercase text-slate-400 tracking-widest">Painel de Equipe Ativo</div>
           </div>
         ) : (
           !selectedEmpId ? (
@@ -318,7 +313,7 @@ const App: React.FC = () => {
                         <h3 className="text-2xl font-black text-slate-900 italic tracking-tighter uppercase mb-6 flex items-center gap-2"><span className="w-8 h-8 bg-slate-900 text-white rounded-lg flex items-center justify-center text-xs not-italic">Q</span> QUADRA {quadra}</h3>
                         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-4 sm:gap-6">
                           {lotes.map(lote => (
-                            <div key={lote.id} className="bg-white p-6 rounded-[2rem] border shadow-sm hover:border-indigo-200 transition-all cursor-pointer border-slate-50 hover:shadow-xl active:scale-95" onClick={() => { setEditingLote({empId: selectedEmpId!, loteId: lote.id}); setLoteForm({quadra: lote.quadra, numero: lote.numero, entrada: lote.entrada.toString(), status: lote.status, cliente: lote.cliente, corretor: lote.corretor, imobiliaria: lote.imobiliaria || "", reservaAte: lote.reservaAte}); setLoteModalOpen(true) }}>
+                            <div key={lote.id} className="bg-white p-6 rounded-[2rem] border shadow-sm hover:border-indigo-200 transition-all cursor-pointer border-slate-50 hover:shadow-xl active:scale-95" onClick={() => { setEditingLote({empId: selectedEmpId!, loteId: lote.id}); setLoteForm({quadra: lote.quadra, numero: lote.numero, entrada: lote.entrada.toString(), status: lote.status, cliente: lote.cliente, corretor: lote.corretor, imobiliaria: lote.imobiliaria || "", dataVenda: lote.dataVenda || "", reservaAte: lote.reservaAte}); setLoteModalOpen(true) }}>
                               <div className="flex justify-between items-start mb-4">
                                 <span className="text-3xl font-black text-slate-900 tracking-tighter italic leading-none">{lote.numero}</span>
                                 <div className={`w-3 h-3 rounded-full shadow-lg ${lote.status === 'disponivel' ? 'bg-emerald-400' : lote.status === 'reservado' ? 'bg-amber-400' : 'bg-rose-400'}`}></div>
@@ -342,7 +337,7 @@ const App: React.FC = () => {
                             <td className="px-8 py-5 font-bold">{formatBRL(lote.entrada)}</td>
                             <td className="px-8 py-5"><span className={`px-2 py-0.5 rounded-full font-black text-[9px] uppercase ${lote.status === 'disponivel' ? 'bg-emerald-100 text-emerald-700' : lote.status === 'reservado' ? 'bg-amber-100 text-amber-700' : 'bg-rose-100 text-rose-700'}`}>{statusLabel(lote.status)}</span></td>
                             <td className="px-8 py-5 text-slate-500">{lote.cliente || '-'}</td>
-                            <td className="px-8 py-5 text-right"><button onClick={() => { setEditingLote({empId: selectedEmpId!, loteId: lote.id}); setLoteForm({quadra: lote.quadra, numero: lote.numero, entrada: lote.entrada.toString(), status: lote.status, cliente: lote.cliente, corretor: lote.corretor, imobiliaria: lote.imobiliaria || "", reservaAte: lote.reservaAte}); setLoteModalOpen(true) }} className="text-indigo-600 font-black uppercase text-[10px]">Ficha</button></td>
+                            <td className="px-8 py-5 text-right"><button onClick={() => { setEditingLote({empId: selectedEmpId!, loteId: lote.id}); setLoteForm({quadra: lote.quadra, numero: lote.numero, entrada: lote.entrada.toString(), status: lote.status, cliente: lote.cliente, corretor: lote.corretor, imobiliaria: lote.imobiliaria || "", dataVenda: lote.dataVenda || "", reservaAte: lote.reservaAte}); setLoteModalOpen(true) }} className="text-indigo-600 font-black uppercase text-[10px]">Ficha</button></td>
                           </tr>
                         ))}
                       </tbody>
@@ -372,20 +367,30 @@ const App: React.FC = () => {
             <Input label="LOTE" value={loteForm.numero} disabled={!isMaster} onChange={e => setLoteForm({...loteForm, numero: e.target.value})} />
           </div>
           <Input label="VALOR ENTRADA (R$)" value={loteForm.entrada} disabled={!isMaster} onChange={e => setLoteForm({...loteForm, entrada: e.target.value})} />
-          <Select label="SITUAÇÃO ATUAL" value={loteForm.status} onChange={e => setLoteForm({...loteForm, status: e.target.value as Status})}>
+          <Select label="SITUAÇÃO ATUAL" value={loteForm.status} onChange={e => {
+            const nextStatus = e.target.value as Status;
+            // Se mudar para vendido e a data estiver vazia, preenche automático
+            const nextDataVenda = (nextStatus === 'vendido' && !loteForm.dataVenda) ? nowLocalISO() : loteForm.dataVenda;
+            setLoteForm({...loteForm, status: nextStatus, dataVenda: nextDataVenda});
+          }}>
             <option value="disponivel">DISPONÍVEL</option>
             <option value="reservado">RESERVADO</option>
             {!isCorretor && <option value="vendido">VENDIDO</option>}
           </Select>
+          
           {loteForm.status !== 'disponivel' && (
             <div className="space-y-4 pt-4 border-t border-slate-50">
               <Input label="NOME DO CLIENTE" value={loteForm.cliente} onChange={e => setLoteForm({...loteForm, cliente: e.target.value})} />
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Input label="CORRETOR RESPONSÁVEL" value={isCorretor ? currentUser.nome : loteForm.corretor} disabled={isCorretor} onChange={e => setLoteForm({...loteForm, corretor: e.target.value})} />
+                <Input label="CORRETOR RESPONSÁVEL" value={isCorretor ? currentUser?.nome : loteForm.corretor} disabled={isCorretor} onChange={e => setLoteForm({...loteForm, corretor: e.target.value})} />
                 <Input label="IMOBILIÁRIA" value={loteForm.imobiliaria} onChange={e => setLoteForm({...loteForm, imobiliaria: e.target.value})} placeholder="Opcional" />
               </div>
+              {loteForm.status === 'vendido' && (
+                <Input label="DIA/HORA DA VENDA" type="datetime-local" value={loteForm.dataVenda} onChange={e => setLoteForm({...loteForm, dataVenda: e.target.value})} />
+              )}
             </div>
           )}
+          
           <Button className="w-full py-4 mt-2" onClick={async () => {
              if (!selectedEmpId) return;
              const targetEmp = empreendimentos.find(e => e.id === selectedEmpId); if (!targetEmp) return;
@@ -396,8 +401,9 @@ const App: React.FC = () => {
                entrada: toNumber(loteForm.entrada), 
                status: loteForm.status, 
                cliente: loteForm.cliente, 
-               corretor: isCorretor ? currentUser.nome : loteForm.corretor,
+               corretor: isCorretor ? (currentUser?.nome || "") : loteForm.corretor,
                imobiliaria: loteForm.imobiliaria,
+               dataVenda: loteForm.status === 'vendido' ? loteForm.dataVenda : "", // Limpa se não for vendido
                reservaAte: loteForm.reservaAte 
              };
              const updatedEmp = { 

@@ -22,6 +22,7 @@ export const exportToExcel = async (emp: Empreendimento) => {
     "Cliente": l.cliente,
     "Corretor": l.corretor,
     "Imobiliária": l.imobiliaria || "-",
+    "Data da Venda": l.dataVenda ? formatISOToBR(l.dataVenda) : "-",
     "Reservado até": formatISOToBR(l.reservaAte)
   }));
   
@@ -37,6 +38,7 @@ export const exportToExcel = async (emp: Empreendimento) => {
       "Cliente": l.cliente,
       "Corretor": l.corretor,
       "Imobiliária": l.imobiliaria || "-",
+      "Data da Venda": l.dataVenda ? formatISOToBR(l.dataVenda) : "-",
       "Reservado até": formatISOToBR(l.reservaAte)
     }));
     
@@ -50,7 +52,7 @@ export const exportToExcel = async (emp: Empreendimento) => {
 export const exportToPDF = async (emp: Empreendimento) => {
   const { jsPDF } = await import("jspdf");
   const autoTable = (await import("jspdf-autotable")).default;
-  const doc = new jsPDF('l', 'mm', 'a4'); // 'l' para landscape (paisagem) por causa da coluna extra
+  const doc = new jsPDF('l', 'mm', 'a4');
   
   doc.setFontSize(18);
   doc.text(emp.nome, 14, 20);
@@ -68,7 +70,7 @@ export const exportToPDF = async (emp: Empreendimento) => {
 
     autoTable(doc, {
       startY: startY,
-      head: [['Lote', 'Entrada', 'Status', 'Cliente', 'Corretor', 'Imobiliária', 'Validade']],
+      head: [['Lote', 'Entrada', 'Status', 'Cliente', 'Corretor', 'Imob.', 'Venda/Validade']],
       body: lotes.map(l => [
         l.numero,
         formatBRL(l.entrada),
@@ -76,11 +78,13 @@ export const exportToPDF = async (emp: Empreendimento) => {
         l.cliente || '-',
         l.corretor || '-',
         l.imobiliaria || '-',
-        formatISOToBR(l.reservaAte) || '-'
+        l.status === 'vendido' 
+          ? `VENDIDO: ${formatISOToBR(l.dataVenda || "")}` 
+          : (formatISOToBR(l.reservaAte) || '-')
       ]),
       theme: 'grid',
       headStyles: { fillColor: [51, 65, 85] },
-      styles: { fontSize: 8 },
+      styles: { fontSize: 7 },
       margin: { top: 20 }
     });
     // @ts-ignore

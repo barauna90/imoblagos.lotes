@@ -1,12 +1,15 @@
 
 export type Status = "disponivel" | "reservado" | "vendido";
+export type Role = "master" | "gestor" | "corretor";
 
 export interface User {
   id: string;
   nome: string;
   email: string;
+  role: Role;
   password?: string;
   avatar?: string;
+  empreendimentosVinculados?: string[]; // IDs dos empreendimentos que este usuário pode ver
 }
 
 export interface Lote {
@@ -17,14 +20,15 @@ export interface Lote {
   status: Status;
   cliente: string;
   corretor: string;
-  reservaAte: string; // yyyy-mm-dd
+  reservaAte: string; 
+  reservedById?: string; 
 }
 
 export interface Empreendimento {
   id: string;
   nome: string;
   lotes: Lote[];
-  createdBy?: string; // ID do usuário que criou
+  createdBy?: string; 
 }
 
 export type ViewMode = "lista" | "cards";

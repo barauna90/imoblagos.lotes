@@ -1,16 +1,21 @@
 
-import { Status, Lote, Empreendimento } from '../types';
+import { Status, Lote } from '../types';
 
 export const uid = () => Math.random().toString(36).substring(2, 11);
 
-export const todayISO = () => new Date().toISOString().split('T')[0];
+/** Retorna a data/hora local no formato yyyy-mm-ddThh:mm para comparação e inputs */
+export const nowLocalISO = () => {
+  const now = new Date();
+  const offset = now.getTimezoneOffset() * 60000;
+  const localISOTime = (new Date(now.getTime() - offset)).toISOString().slice(0, 16);
+  return localISOTime;
+};
 
 export const formatBRL = (n: number) => 
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(n);
 
 export const toNumber = (str: string): number => {
   if (!str) return 0;
-  // Remove points used for thousands and replace comma for decimal
   const clean = str.replace(/\./g, '').replace(',', '.');
   const val = parseFloat(clean);
   return isNaN(val) ? 0 : val;
@@ -36,12 +41,14 @@ export const statusPillClass = (status: Status): string => {
 
 export const formatISOToBR = (iso: string): string => {
   if (!iso) return '';
-  const [y, m, d] = iso.split('-');
-  return `${d}/${m}/${y}`;
+  // Formato esperado: yyyy-mm-ddThh:mm ou yyyy-mm-dd
+  const [datePart, timePart] = iso.split('T');
+  const [y, m, d] = datePart.split('-');
+  const dateStr = `${d}/${m}/${y}`;
+  return timePart ? `${dateStr} ${timePart}` : dateStr;
 };
 
 export const sanitizeSheetName = (name: string): string => {
-  // Excel limits: max 31 chars, no characters like :\/?*[]
   let sanitized = name.replace(/[:\\/?*[\]]/g, '').trim();
   if (sanitized === "") sanitized = "Aba";
   return sanitized.substring(0, 31);
@@ -62,14 +69,12 @@ export const groupByQuadra = (lotes: Lote[]) => {
     groups[qName].push(l);
   });
 
-  // Sort groups by quadra name pt-BR
   const sortedQuadras = Object.keys(groups).sort((a, b) => 
     a.localeCompare(b, 'pt-BR', { sensitivity: 'base' })
   );
 
   const result: Record<string, Lote[]> = {};
   sortedQuadras.forEach(q => {
-    // Sort lots by number numeric:true
     result[q] = groups[q].sort((a, b) => 
       a.numero.localeCompare(b.numero, 'pt-BR', { numeric: true })
     );
@@ -88,11 +93,12 @@ export const getStats = (lotes: Lote[]) => {
 };
 
 export const expireReservations = (lotes: Lote[]): { updatedLotes: Lote[], changed: boolean } => {
-  const hoje = todayISO();
+  const agora = nowLocalISO();
   let changed = false;
   
   const updatedLotes = lotes.map(l => {
-    if (l.status === 'reservado' && l.reservaAte && l.reservaAte < hoje) {
+    // Compara strings ISO locais: "2023-10-27T10:00" < "2023-10-27T11:00"
+    if (l.status === 'reservado' && l.reservaAte && l.reservaAte < agora) {
       changed = true;
       return { 
         ...l, 

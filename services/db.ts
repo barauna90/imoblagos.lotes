@@ -12,7 +12,8 @@ interface DBStructure {
 const initialDB: DBStructure = {
   users: [
     // Usuário padrão para teste
-    { id: '1', nome: 'Administrador', email: 'admin@imoblagos.com.br', password: '123' }
+    // Added missing 'role' property to comply with User type definition
+    { id: '1', nome: 'Administrador', email: 'admin@imoblagos.com.br', password: '123', role: 'master' }
   ],
   empreendimentos: []
 };

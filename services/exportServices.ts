@@ -5,7 +5,6 @@ import {
   formatISOToBR, 
   statusLabel, 
   groupByQuadra, 
-  sanitizeSheetName, 
   sanitizeFileName,
   calculateLoteTotal
 } from '../utils/helpers';

@@ -13,9 +13,6 @@ export const nowLocalISO = () => {
 export const formatBRL = (n: number) => 
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(n);
 
-/**
- * Máscara para input de moeda em tempo real
- */
 export const maskCurrency = (value: string) => {
   let v = value.replace(/\D/g, "");
   if (!v) return "";
@@ -26,24 +23,34 @@ export const maskCurrency = (value: string) => {
   return v;
 };
 
-/**
- * Converte string formatada (BR) para número puro (float)
- */
+export const maskCNPJ = (value: string) => {
+  let v = value.replace(/\D/g, "");
+  if (v.length > 14) v = v.slice(0, 14);
+  v = v.replace(/^(\d{2})(\d)/, "$1.$2");
+  v = v.replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3");
+  v = v.replace(/\.(\d{3})(\d)/, ".$1/$2");
+  v = v.replace(/(\d{4})(\d)/, "$1-$2");
+  return v;
+};
+
+export const maskPhone = (value: string) => {
+  let v = value.replace(/\D/g, "");
+  if (v.length > 11) v = v.slice(0, 11);
+  v = v.replace(/^(\d{2})(\d)/g, "($1) $2");
+  v = v.replace(/(\d)(\d{4})$/, "$1-$2");
+  return v;
+};
+
 export const toNumber = (str: string | number): number => {
   if (typeof str === 'number') return str;
   if (!str) return 0;
-  
   let clean = str.toString().trim();
-  
-  // Se tem vírgula (Padrão BR: 1.234,56), remove os pontos de milhar e troca a vírgula por ponto
   if (clean.includes(',')) {
     clean = clean.replace(/\./g, '').replace(',', '.');
   } else {
-    // Se não tem vírgula mas tem múltiplos pontos, remove-os (milhares)
     const points = (clean.match(/\./g) || []).length;
     if (points > 1) clean = clean.replace(/\./g, '');
   }
-  
   const val = parseFloat(clean);
   return isNaN(val) ? 0 : val;
 };
@@ -77,7 +84,6 @@ export const groupByQuadra = (lotes: Lote[]) => {
     if (!groups[qName]) groups[qName] = [];
     groups[qName].push(l);
   });
-  
   const sortedQuadras = Object.keys(groups).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
   const result: Record<string, Lote[]> = {};
   sortedQuadras.forEach(q => {
@@ -99,34 +105,4 @@ export const getStats = (lotes: Lote[]) => {
   };
 };
 
-export const getDashboardStats = (lotes: Lote[], month: number, year: number) => {
-  const soldInPeriod = lotes.filter(l => {
-    if (l.status !== 'vendido' || !l.dataVenda) return false;
-    const date = new Date(l.dataVenda);
-    return date.getMonth() === month && date.getFullYear() === year;
-  });
-
-  const vgv = soldInPeriod.reduce((acc, l) => acc + calculateLoteTotal(l), 0);
-
-  const rankingMap: Record<string, { corretor: string; imobiliaria: string; vendas: number }> = {};
-  soldInPeriod.forEach(l => {
-    const key = `${l.corretor}_${l.imobiliaria}`.toUpperCase();
-    if (!rankingMap[key]) {
-      rankingMap[key] = { 
-        corretor: l.corretor || "Corretor Lagos", 
-        imobiliaria: l.imobiliaria || "Particular", 
-        vendas: 0 
-      };
-    }
-    rankingMap[key].vendas++;
-  });
-
-  return { 
-    salesCount: soldInPeriod.length, 
-    vgv, 
-    ranking: Object.values(rankingMap).sort((a, b) => b.vendas - a.vendas).slice(0, 3) 
-  };
-};
-
 export const sanitizeFileName = (name: string) => name.replace(/[<>:"/\\|?*]/g, '_').trim();
-export const sanitizeSheetName = (name: string) => name.replace(/[\\/?*\[\]:]/g, '_').substring(0, 31);

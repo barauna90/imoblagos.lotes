@@ -2,14 +2,30 @@
 export type Status = "disponivel" | "reservado" | "vendido";
 export type Role = "master" | "gestor" | "corretor";
 
+export interface Imobiliaria {
+  id: string;
+  nome: string;
+  cnpj?: string;
+  contato?: string;
+}
+
 export interface User {
   id: string;
   nome: string;
   email: string;
   role: Role;
+  imobiliaria?: string; // Nome da imobiliária vinculada
+  imobiliariaId?: string; // ID da imobiliária para vínculo estruturado
   password?: string;
   avatar?: string;
   empreendimentosVinculados?: string[];
+}
+
+export interface LoteDimensoes {
+  frente: string;
+  fundos: string;
+  lateralDireita: string;
+  lateralEsquerda: string;
 }
 
 export interface Lote {
@@ -25,7 +41,8 @@ export interface Lote {
   imobiliaria: string;
   dataVenda?: string;
   reservaAte: string; 
-  reservedById?: string; 
+  reservedById?: string;
+  dimensoes?: LoteDimensoes;
 }
 
 export interface Empreendimento {
@@ -36,6 +53,7 @@ export interface Empreendimento {
 }
 
 export type ViewMode = "lista" | "cards";
+export type AppSection = "projetos" | "financeiro" | "equipe" | "imobiliarias";
 
 export interface LoteFormState {
   quadra: string;
@@ -49,4 +67,8 @@ export interface LoteFormState {
   imobiliaria: string;
   dataVenda: string;
   reservaAte: string;
+  frente: string;
+  fundos: string;
+  lateralDireita: string;
+  lateralEsquerda: string;
 }

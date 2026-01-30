@@ -121,6 +121,22 @@ const App: React.FC = () => {
     if (error) setAuthError("Dados incorretos.");
   };
 
+  const handleLogout = async () => {
+    try {
+      await SupabaseService.signOut();
+      // Limpeza forçada do estado para garantir que a UI mude mesmo se o listener demorar
+      setCurrentUser(null);
+      setSelectedEmpId(null);
+      setActiveTab('empreendimentos');
+      setLogoutConfirmOpen(false);
+    } catch (error) {
+      console.error("Erro ao sair:", error);
+      // Mesmo com erro, tentamos resetar a UI localmente
+      setCurrentUser(null);
+      setLogoutConfirmOpen(false);
+    }
+  };
+
   const handleBulkCreate = async () => {
     if (!selectedEmp || !bulkForm.quadra) return;
     const start = parseInt(bulkForm.inicio);
@@ -585,7 +601,7 @@ const App: React.FC = () => {
         <div className="space-y-6 text-center">
           <p className="text-slate-600 font-medium">Encerrar sua sessão de trabalho?</p>
           <div className="flex flex-col gap-2">
-            <Button variant="danger" className="w-full h-14" onClick={() => { SupabaseService.signOut(); setLogoutConfirmOpen(false); }}>SIM, SAIR</Button>
+            <Button variant="danger" className="w-full h-14" onClick={handleLogout}>SIM, SAIR</Button>
             <Button variant="ghost" className="w-full" onClick={() => setLogoutConfirmOpen(false)}>CANCELAR</Button>
           </div>
         </div>
